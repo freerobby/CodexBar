@@ -279,4 +279,74 @@ struct CursorMenuCardModelTests {
         #expect(model.metrics.map(\.title) == ["Total", "Cursor", "Third Party", "Grok Bot"])
         #expect(model.metrics.last?.percentLabel == "0% left")
     }
+
+    @Test
+    func `cursor auto bar does not inherit grok bot weekly pace after a billing reset`() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let monthlyReset = now.addingTimeInterval((28 * 24 + 14) * 3600)
+        let monthlyMinutes = Int((36 * 60) + (28 * 24 + 14) * 60)
+        let grokReset = now.addingTimeInterval((2 * 24 + 14) * 3600)
+        let grokWindow = RateWindow(
+            usedPercent: 28,
+            windowMinutes: 10080,
+            resetsAt: grokReset,
+            resetDescription: nil)
+        let grokPace = try #require(UsagePace.weekly(window: grokWindow, now: now))
+        #expect(Int(abs(grokPace.deltaPercent).rounded()) == 35)
+
+        let snapshot = UsageSnapshot(
+            primary: RateWindow(
+                usedPercent: 3,
+                windowMinutes: monthlyMinutes,
+                resetsAt: monthlyReset,
+                resetDescription: nil),
+            secondary: RateWindow(
+                usedPercent: 3,
+                windowMinutes: monthlyMinutes,
+                resetsAt: monthlyReset,
+                resetDescription: nil),
+            tertiary: RateWindow(
+                usedPercent: 16,
+                windowMinutes: monthlyMinutes,
+                resetsAt: monthlyReset,
+                resetDescription: nil),
+            extraRateWindows: [
+                NamedRateWindow(
+                    id: CursorSandUsageStatus.extraWindowID,
+                    title: CursorSandUsageStatus.extraWindowTitle,
+                    window: grokWindow),
+            ],
+            updatedAt: now,
+            identity: nil)
+        let semantic = CursorProviderDescriptor.descriptor.presentation.semanticWindows(snapshot: snapshot)
+        #expect(semantic.weekly?.usedPercent == 3)
+        #expect(semantic.weekly?.windowMinutes == monthlyMinutes)
+
+        let metadata = try #require(ProviderDefaults.metadata[.cursor])
+        let model = UsageMenuCardView.Model.make(.init(
+            provider: .cursor,
+            metadata: metadata,
+            snapshot: snapshot,
+            credits: nil,
+            creditsError: nil,
+            dashboardError: nil,
+            tokenSnapshot: nil,
+            tokenError: nil,
+            account: AccountInfo(email: nil, plan: nil),
+            isRefreshing: false,
+            lastError: nil,
+            usageBarsShowUsed: true,
+            resetTimeDisplayStyle: .countdown,
+            tokenCostUsageEnabled: false,
+            showOptionalCreditsAndExtraUsage: true,
+            hidePersonalInfo: false,
+            weeklyPace: grokPace,
+            now: now))
+
+        let metrics = Dictionary(uniqueKeysWithValues: model.metrics.map { ($0.title, $0) })
+        #expect(metrics["Total"]?.detailLeftText == "On pace")
+        #expect(metrics["Cursor"]?.detailLeftText == "On pace")
+        #expect(metrics["Third Party"]?.detailLeftText == "11% in deficit")
+        #expect(metrics["Grok Bot"]?.detailLeftText == nil)
+    }
 }
