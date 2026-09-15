@@ -283,9 +283,9 @@ struct CursorMenuCardModelTests {
     @Test
     func `cursor auto bar does not inherit grok bot weekly pace after a billing reset`() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let monthlyReset = now.addingTimeInterval((28 * 24 + 14) * 3600)
-        let monthlyMinutes = Int((36 * 60) + (28 * 24 + 14) * 60)
-        let grokReset = now.addingTimeInterval((2 * 24 + 14) * 3600)
+        let monthlyReset = now.addingTimeInterval(TimeInterval((28 * 24 + 14) * 3600))
+        let monthlyMinutes = 36 * 60 + (28 * 24 + 14) * 60
+        let grokReset = now.addingTimeInterval(TimeInterval((2 * 24 + 14) * 3600))
         let grokWindow = RateWindow(
             usedPercent: 28,
             windowMinutes: 10080,

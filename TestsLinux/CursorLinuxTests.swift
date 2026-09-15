@@ -30,9 +30,9 @@ struct CursorLinuxTests {
     @Test
     func `Cursor semantic weekly window is monthly Cursor Auto, not Grok Bot`() throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
-        let monthlyReset = now.addingTimeInterval((28 * 24 + 14) * 3600)
-        let monthlyMinutes = Int((36 * 60) + (28 * 24 + 14) * 60)
-        let grokReset = now.addingTimeInterval((2 * 24 + 14) * 3600)
+        let monthlyReset = now.addingTimeInterval(TimeInterval((28 * 24 + 14) * 3600))
+        let monthlyMinutes = 36 * 60 + (28 * 24 + 14) * 60
+        let grokReset = now.addingTimeInterval(TimeInterval((2 * 24 + 14) * 3600))
         let grokWindow = RateWindow(
             usedPercent: 28,
             windowMinutes: 10080,
@@ -70,8 +70,9 @@ struct CursorLinuxTests {
 
         let grokPace = try #require(UsagePace.weekly(window: grokWindow, now: now))
         #expect(Int(abs(grokPace.deltaPercent).rounded()) == 35)
-        let monthlyPace = try #require(snapshot.secondary.flatMap { UsagePace.weekly(window: $0, now: now) })
-        #expect(monthlyPace.stage == .onTrack)
+        let monthlyWindow = try #require(snapshot.secondary)
+        let monthlyPace = try #require(UsagePace.weekly(window: monthlyWindow, now: now))
+        #expect(monthlyPace.stage == UsagePace.Stage.onTrack)
     }
 
     @Test
