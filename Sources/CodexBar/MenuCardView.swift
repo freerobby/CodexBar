@@ -1451,6 +1451,7 @@ extension UsageMenuCardView.Model {
         title: String? = nil) -> Metric
     {
         // Kimi's secondary slot is its 5-hour rate limit rather than a weekly window.
+        let matchingWeeklyPace = Self.weeklyPaceMatchingWindow(input.weeklyPace, window: weekly)
         var paceDetail = if input.provider == .kimi {
             Self.sessionPaceDetail(
                 provider: input.provider,
@@ -1462,7 +1463,7 @@ extension UsageMenuCardView.Model {
                 provider: input.provider,
                 window: weekly,
                 now: input.now,
-                pace: input.weeklyPace,
+                pace: matchingWeeklyPace,
                 showUsed: input.usageBarsShowUsed)
         }
         let presentation = ProviderDescriptorRegistry.descriptor(for: input.provider).presentation
@@ -1525,7 +1526,7 @@ extension UsageMenuCardView.Model {
         if let cursorPaceDetail = Self.resetWindowPaceDetail(
             window: weekly,
             input: input,
-            pace: input.weeklyPace)
+            pace: matchingWeeklyPace)
         {
             paceDetail = cursorPaceDetail
         }
