@@ -79,7 +79,7 @@ public enum CursorProviderDescriptor {
                 extraRateWindowSelector: { snapshot in
                     (snapshot.extraRateWindows ?? []).filter { $0.id == CursorSandUsageStatus.extraWindowID }
                 },
-                semanticWindowResolver: Self.semanticWindows,
+                semanticWindowResolver: self.semanticWindows,
                 requestedMenuBarLaneOrders: [
                     .tertiary: [.tertiary, .secondary, .primary],
                 ],

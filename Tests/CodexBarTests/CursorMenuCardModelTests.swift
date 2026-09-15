@@ -282,8 +282,8 @@ struct CursorMenuCardModelTests {
         #expect(model.metrics.last?.detailRightText == nil)
     }
 
-    @Test
-    func `cursor auto bar does not inherit grok bot weekly pace after a billing reset`() throws {
+    @Test(arguments: [3.0, 28.0])
+    func `cursor monthly pace stays separate from grok bot after a billing reset`(cursorUsedPercent: Double) throws {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         let monthlyReset = now.addingTimeInterval(TimeInterval((28 * 24 + 14) * 3600))
         let monthlyMinutes = 36 * 60 + (28 * 24 + 14) * 60
@@ -303,7 +303,7 @@ struct CursorMenuCardModelTests {
                 resetsAt: monthlyReset,
                 resetDescription: nil),
             secondary: RateWindow(
-                usedPercent: 3,
+                usedPercent: cursorUsedPercent,
                 windowMinutes: monthlyMinutes,
                 resetsAt: monthlyReset,
                 resetDescription: nil),
@@ -321,8 +321,10 @@ struct CursorMenuCardModelTests {
             updatedAt: now,
             identity: nil)
         let semantic = CursorProviderDescriptor.descriptor.presentation.semanticWindows(snapshot: snapshot)
-        #expect(semantic.weekly?.usedPercent == 3)
+        #expect(semantic.weekly?.usedPercent == cursorUsedPercent)
         #expect(semantic.weekly?.windowMinutes == monthlyMinutes)
+        let monthlyWindow = try #require(semantic.weekly)
+        let monthlyPace = try #require(UsagePace.weekly(window: monthlyWindow, now: now))
 
         let metadata = try #require(ProviderDefaults.metadata[.cursor])
         let model = UsageMenuCardView.Model.make(.init(
@@ -342,12 +344,12 @@ struct CursorMenuCardModelTests {
             tokenCostUsageEnabled: false,
             showOptionalCreditsAndExtraUsage: true,
             hidePersonalInfo: false,
-            weeklyPace: grokPace,
+            weeklyPace: monthlyPace,
             now: now))
 
         let metrics = Dictionary(uniqueKeysWithValues: model.metrics.map { ($0.title, $0) })
         #expect(metrics["Total"]?.detailLeftText == "On pace")
-        #expect(metrics["Cursor"]?.detailLeftText == "On pace")
+        #expect(metrics["Cursor"]?.detailLeftText == (cursorUsedPercent == 3 ? "On pace" : "23% in deficit"))
         #expect(metrics["Third Party"]?.detailLeftText == "11% in deficit")
         #expect(metrics["Grok Bot"]?.detailLeftText == "35% in reserve")
         #expect(metrics["Grok Bot"]?.detailRightText == "Lasts until reset")

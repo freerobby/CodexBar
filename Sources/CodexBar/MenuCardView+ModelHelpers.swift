@@ -836,11 +836,7 @@ extension UsageMenuCardView.Model {
         // A caller-supplied pace was measured against the raw window, so reuse it only when resolution
         // left the duration alone. Trusting it for a monthly sentinel would score the billing period as
         // a flat 30 days and silently undo the calendar-cycle resolution one line above.
-        // Matching used percent is required too: Cursor's Grok Bot extra window can supply a weekly
-        // pace whose duration is unchanged on the monthly Auto bar, which would paint Grok's reserve
-        // onto a just-reset included-plan quota.
-        let durationUnchanged = paceWindow.windowMinutes == window.windowMinutes
-        let reusablePace = durationUnchanged ? Self.weeklyPaceMatchingWindow(pace, window: window) : nil
+        let reusablePace = paceWindow.windowMinutes == window.windowMinutes ? pace : nil
         let resolved = reusablePace ?? UsagePace.weekly(
             window: paceWindow,
             now: input.now,
@@ -858,16 +854,6 @@ extension UsageMenuCardView.Model {
     private static func resetWindowForPace(provider: UsageProvider, window: RateWindow) -> RateWindow {
         // Provider snapshots use 30 days as a monthly sentinel; use the reset date for the real calendar-cycle length.
         ProviderDescriptorRegistry.descriptor(for: provider).pace.resolvedResetWindowForPace(window)
-    }
-
-    /// Precomputed `weeklyPace` belongs to one semantic window. Reusing it on a different quota
-    /// paints that window's reserve/deficit onto the wrong bar (Cursor Auto vs Grok Bot).
-    static func weeklyPaceMatchingWindow(_ pace: UsagePace?, window: RateWindow) -> UsagePace? {
-        guard let pace else { return nil }
-        guard abs(pace.actualUsedPercent - window.usedPercent.clamped(to: 0...100)) < 0.5 else {
-            return nil
-        }
-        return pace
     }
 
     static func antigravityMetrics(input: Input, snapshot: UsageSnapshot) -> [Metric] {
